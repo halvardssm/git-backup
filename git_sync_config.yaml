@@ -1,0 +1,4 @@
+interval: 10
+repos:
+    - path: "../test"
+      interval: 15

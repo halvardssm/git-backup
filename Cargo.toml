@@ -1,8 +1,15 @@
 [package]
-name = "git-sync"
+name = "git-backup"
 version = "0.1.0"
 edition = "2021"
+authors = ["Halvard Mørstad <halvard@simplyundoable.com>"]
+license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.8"
+env_logger = "0.9"
+log = "0.4"
