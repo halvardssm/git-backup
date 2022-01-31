@@ -1,4 +1,16 @@
-interval: 10
-repos:
-    - path: "../test"
-      interval: 15
+default_interval: 10
+# repos:
+#   - path: "../test"
+#     repo: "git@some.origin/reponame"
+#     interval: 15
+owners:
+  - provider: "github_user"
+    namespace: "leifssm"
+    path: "./test/github_halvardssm"
+  # - provider: "github_org"
+  #   namespace: "journee-live"
+  #   path: "./github_journee-live"
+  # - provider: "gitlab"
+  #   namespace: "halvardssm"
+  #   path: "./gitlab_halvardssm"
+
