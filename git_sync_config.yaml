@@ -1,16 +1,16 @@
 default_interval: 7
 # default_refresh_interval: 16
-repos:
-  - path: "./test/js-helpers.git"
-    url: "git@github.com:halvardssm/js-helpers.git"
-    interval: 15
-# owners:
+# repos:
+  # - path: "./test/js-helpers.git"
+  #   url: "git@github.com:halvardssm/js-helpers.git"
+  #   interval: 15
+owners:
   # - provider: "github_user"
   #   namespace: "leifssm"
   #   path: "./test/github_halvardssm"
-  # - provider: "github_org"
-  #   namespace: "journee-live"
-  #   path: "./github_journee-live"
+  - provider: "github_org"
+    namespace: "simplyundoable"
+    path: "./github_simplyundoable"
   # - provider: "gitlab"
   #   namespace: "halvardssm"
   #   path: "./gitlab_halvardssm"

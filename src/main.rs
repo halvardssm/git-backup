@@ -7,6 +7,11 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use tokio::time::{self, Duration};
+use serde::Deserialize;
+use gitlab::Gitlab;
+use gitlab::api::{self, projects, Query};
+
+mod providers::{github,gitlab};
 
 fn run_git_reset_branch(path: &str) {
     let output_fetch = Command::new("git")
@@ -177,31 +182,6 @@ fn folder_handler(path_raw: &String) -> PathBuf {
     return path;
 }
 
-async fn github_user_handler(default_interval: u64, owner: &GitSyncConfigOrg) -> Vec<RepoInfo> {
-    let url = format!("/users/{}/repos", owner.namespace);
-    let repos: Result<Vec<octocrab::models::Repository>, octocrab::Error> =
-        octocrab::instance().get(url, None::<&()>).await;
-    let repos = repos.unwrap();
-
-    let local_folder_path = folder_handler(&owner.path);
-    repos
-        .iter()
-        .map(|r| {
-            let name = r.name.clone();
-            let mut local_repo_path = local_folder_path.join(&name);
-            local_repo_path.set_extension("git");
-
-            return RepoInfo {
-                name: name,
-                url: r.git_url.clone().unwrap().to_string(),
-                interval: owner.interval.unwrap_or(default_interval),
-                local_folder_path: local_folder_path.clone(),
-                local_repo_path: local_repo_path,
-            };
-        })
-        .collect::<Vec<RepoInfo>>()
-}
-
 fn repo_handler(default_interval: u64, repo: &GitSyncConfigRepo) -> RepoInfo {
     let local_repo_path = PathBuf::from(repo.path.clone());
     let local_folder_path = local_repo_path.parent().unwrap().to_path_buf();
@@ -244,7 +224,15 @@ async fn main() {
         for org in &config.owners {
             match org.provider.as_str() {
                 "github_user" => {
-                    let mut r = github_user_handler(config.default_interval, org).await;
+                    let mut r = github::github_user_handler(config.default_interval, org).await;
+                    repos.append(&mut r);
+                },
+                "github_org" => {
+                    let mut r = github::github_org_handler(config.default_interval, org).await;
+                    repos.append(&mut r);
+                },
+                "gitlab" => {
+                    let mut r = gitlab::gitlab_handler(config.default_interval, org).await;
                     repos.append(&mut r);
                 }
                 _ => println!("No provider available: {}", org.provider),
