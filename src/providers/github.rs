@@ -1,10 +1,14 @@
 use crate::config::{GitSyncConfig, GitSyncConfigOrg};
-use crate::providers::shared::{folder_handler, get_parent_folder, add_to_path};
+use crate::providers::shared::{add_to_path, folder_handler, get_parent_folder};
 use crate::repo::RepoInfo;
 use log::debug;
 use octocrab;
 
-fn github_generic_repos_handler(config: &GitSyncConfig, owner: &GitSyncConfigOrg, repos: Vec<octocrab::models::Repository>) -> Vec<RepoInfo> {
+fn github_generic_repos_handler(
+    config: &GitSyncConfig,
+    owner: &GitSyncConfigOrg,
+    repos: Vec<octocrab::models::Repository>,
+) -> Vec<RepoInfo> {
     repos
         .iter()
         .map(|r| {
@@ -12,15 +16,21 @@ fn github_generic_repos_handler(config: &GitSyncConfig, owner: &GitSyncConfigOrg
                 &config.path,
                 &vec![
                     owner.provider.clone(),
-                    r.clone_url.clone().expect("Github user SSH url was not available").path().to_string().trim_start_matches("/").to_string(),
+                    r.clone_url
+                        .clone()
+                        .expect("Github user SSH url was not available")
+                        .path()
+                        .to_string()
+                        .trim_start_matches("/")
+                        .to_string(),
                 ],
             );
 
-            debug!("Local repo path {:?}",local_repo_path.to_str());
+            debug!("Local repo path {:?}", local_repo_path.to_str());
 
             let local_folder_path = get_parent_folder(&local_repo_path);
 
-            debug!("Local folder path {:?}",local_folder_path.to_str());
+            debug!("Local folder path {:?}", local_folder_path.to_str());
 
             folder_handler(&local_folder_path);
 
@@ -33,7 +43,10 @@ fn github_generic_repos_handler(config: &GitSyncConfig, owner: &GitSyncConfigOrg
         .collect::<Vec<RepoInfo>>()
 }
 
-pub async fn github_user_handler(config: &GitSyncConfig, owner: &GitSyncConfigOrg) -> Vec<RepoInfo> {
+pub async fn github_user_handler(
+    config: &GitSyncConfig,
+    owner: &GitSyncConfigOrg,
+) -> Vec<RepoInfo> {
     let url = format!("/users/{}/repos", owner.namespace);
     let repos: Vec<octocrab::models::Repository> = octocrab::instance()
         .get(url.clone(), None::<&()>)
@@ -42,17 +55,17 @@ pub async fn github_user_handler(config: &GitSyncConfig, owner: &GitSyncConfigOr
 
     debug!("Github repos '{}' {:?}", url, repos);
 
-    github_generic_repos_handler(config,owner,repos)
+    github_generic_repos_handler(config, owner, repos)
 }
 
 pub async fn github_org_handler(config: &GitSyncConfig, owner: &GitSyncConfigOrg) -> Vec<RepoInfo> {
     let url = format!("/orgs/{}/repos", owner.namespace);
     let repos: Vec<octocrab::models::Repository> = octocrab::instance()
-            .get(url.clone(), None::<&()>)
-            .await
-            .expect(format!("Github call failed for {}", url).as_str());
+        .get(url.clone(), None::<&()>)
+        .await
+        .expect(format!("Github call failed for {}", url).as_str());
 
     debug!("Github repos '{}' {:?}", url, repos);
 
-    github_generic_repos_handler(config,owner,repos)
+    github_generic_repos_handler(config, owner, repos)
 }

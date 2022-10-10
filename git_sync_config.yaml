@@ -1,9 +1,7 @@
 interval: 10
 path: ./test
 repos:
-   - path: "./test/js-helpers.git"
-     url: "git@github.com:halvardssm/js-helpers.git"
-     interval: 15
+   - url: "git@github.com:halvardssm/js-helpers.git"
 owners:
    - provider: "github_user"
      namespace: "leifssm"

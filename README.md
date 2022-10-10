@@ -8,19 +8,42 @@ This script needs a config file to work. Create a yaml file and pass it with the
 
 The schema of the config file is as follows:
 
-```yaml
-interval: u64 # Default interval (in seconds), will be used if interval for repo is not set
-repos: # Array of repos
-    - path: str # Repo path
-      interval: u64? # Optional interval (in seconds)
-```
+## Examples
 
-Example:
+### Config
 
 ```yaml
 interval: 10
+path: /mnt/storage/git-backup
 repos:
-    - path: "../repo"
-      interval: 15
-    - path: "/path/repo"
+    - url: "git@github.com:halvardssm/js-helpers.git" # will get downloaded to a sub folder named `individual`
+owners:
+   - provider: "github_user"
+     namespace: "halvardssm"
+   - provider: "github_org"
+     namespace: "simplyundoable"
+   - provider: "gitlab_org"
+     namespace: "simplyundoable"
+   - provider: "gitlab_user"
+     namespace: "halvardm"
 ```
+
+### Systemd
+
+```toml
+[Unit]
+Description=Git backup service
+After=network-online.target
+
+[Service]
+Type=exec
+ExecStart=/bin/git-backup --config=/path/to/config/config.yaml
+
+[Install]
+WantedBy=network-online.target
+```
+
+## Todo
+
+- Add authentication for private repos
+- improve folder structure
