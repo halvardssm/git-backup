@@ -11,6 +11,8 @@ pub struct GitSyncConfigRepo {
 pub struct GitSyncConfigOrg {
     pub provider: String,
     pub namespace: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub auth_token: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

@@ -1,0 +1,18 @@
+interval: 10
+path: ./test
+repos:
+  - url: "git@gitlab.com:halvardm/rust-gitlab.git"
+owners:
+  - provider: "github_user"
+    namespace: "halvardssm"
+    auth_token: "ghp_xxxx"
+  - provider: "github_org"
+    namespace: "simplyundoable"
+    auth_token: "ghp_xxxx"
+  - provider: "gitlab_group"
+    namespace: "simplyundoable"
+    auth_token: "glpat-xxxxx"
+  - provider: "gitlab_user"
+    namespace: "halvardm"
+    auth_token: "glpat-xxxxx"
+

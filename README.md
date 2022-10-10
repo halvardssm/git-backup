@@ -14,43 +14,63 @@ The schema of the config file is as follows:
 
 ### Config
 
+- `auth_token` is optional and is only used when you want to query private repos
+
 ```yaml
 interval: 10
 path: /mnt/storage/git-backup
 repos:
-    - url: "git@github.com:halvardssm/js-helpers.git" # will get downloaded to a sub folder named `individual`
+  - url: "git@gitlab.com:halvardm/rust-gitlab.git"
 owners:
-   - provider: "github_user"
-     namespace: "halvardssm"
-   - provider: "github_org"
-     namespace: "halvardorg"
-   - provider: "gitlab_org"
-     namespace: "halvardorg"
-   - provider: "gitlab_user"
-     namespace: "halvardm"
+  - provider: "github_user"
+    namespace: "gituser1"
+    auth_token: "ghp_xxxxx"
+  - provider: "github_org"
+    namespace: "gitorg1"
+    auth_token: "ghp_xxxxx"
+  - provider: "gitlab_group"
+    namespace: "gitgroup1"
+    auth_token: "glpat-xxxxx"
+  - provider: "gitlab_user"
+    namespace: "gituser2"
+    auth_token: "glpat-xxxxx"
 ```
 
 Will result in the following file structure
 
 ```
 .
-├── github_org
-│   └── halvardorg
+├── github.com
+│   ├── gituser1
+│   │   └── some-repo.git
+│   └── gitorg1
 │       ...
-│       └── story-book.git
-├── github_user
-│   └── halvardssm
-│       ...
-│       └── git-backup.git
-│── gitlab_org
-│   └── gitlab.com
-│       └── halvardorg
-└── gitlab_user
-    └── gitlab.com
-        └── halvardm
+│       └── some-other-repo.git
+└── gitlab.com
+    ├── gituser2
+    │   └── some-third-repo.git
+    └── gitgroup1
+        ├── gitsubgroup1
+        │   ├── gitsubsubgroup1
+        │   │   └── some-third-level-repo.git
+        │   └── some-second-level-repo.git
+        └── some-top-level-repo.git
+```
+
+### SSH
+
+You will need to have the SSH key added to the remote where you want to clone from, and to authorize remotes for your local environment.
+
+To authorize github and gitlab, you can use these scripts, however this is not recommended, and could be considered a security issue.
+
+```shell
+ssh-keyscan github.com >> ~/.ssh/known_hosts
+ssh-keyscan gitlab.com >> ~/.ssh/known_hosts
 ```
 
 ### Systemd
+
+If you use systemd, you can use this template
 
 ```
 [Unit]
@@ -64,8 +84,3 @@ ExecStart=/bin/git-backup --config=/path/to/config/config.yaml
 [Install]
 WantedBy=network-online.target
 ```
-
-## Todo
-
-- Add authentication for private repos
-- improve folder structure

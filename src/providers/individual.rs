@@ -1,7 +1,5 @@
 use crate::config::{GitSyncConfig, GitSyncConfigRepo};
-use crate::providers::shared::{
-    add_to_path, folder_handler, get_git_ssh_url_segments, get_parent_folder,
-};
+use crate::providers::shared::{add_to_path, get_git_ssh_url_segments, get_parent_folder};
 use crate::repo::RepoInfo;
 use regex::Regex;
 
@@ -14,14 +12,9 @@ pub async fn repo_parser(config: &GitSyncConfig, repo: &GitSyncConfigRepo) -> Re
 
     let (namespace, path) = get_git_ssh_url_segments(&repo.url);
 
-    let local_repo_path = add_to_path(
-        &config.path,
-        &vec![String::from("individual"), namespace, path],
-    );
+    let local_repo_path = add_to_path(&config.path, &vec![namespace, path]);
 
     let local_folder_path = get_parent_folder(&local_repo_path);
-
-    folder_handler(&local_folder_path);
 
     let url = repo.url.clone();
 

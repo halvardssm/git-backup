@@ -1,30 +1,92 @@
 use crate::config::{GitSyncConfig, GitSyncConfigOrg};
-use crate::providers::shared::{add_to_path, folder_handler, get_parent_folder};
+use crate::providers::shared::{
+    add_authorization_to_builder, add_to_path, get_git_ssh_url_segments, get_parent_folder,
+};
 use crate::repo::RepoInfo;
 use log::debug;
-use octocrab;
+use reqwest::Client;
+use serde::Deserialize;
+use url::Url;
 
-fn github_generic_repos_handler(
+const DEFAULT_HOST: &str = "https://api.github.com";
+const DEFAULT_PAGINATION_SIZE: i32 = 100;
+
+#[derive(Debug, Deserialize)]
+struct GithubProjectResponse {
+    ssh_url: String,
+}
+
+fn create_url(path: &String) -> Url {
+    let mut url = Url::parse(DEFAULT_HOST).expect("Host could not be parsed");
+
+    url.set_path(path.as_str());
+    url.set_query(Some(
+        format!("per_page={}", DEFAULT_PAGINATION_SIZE).as_str(),
+    ));
+
+    debug!("URL: {:?}", url.as_str());
+
+    url
+}
+
+async fn github_generic_repos_handler(
     config: &GitSyncConfig,
     owner: &GitSyncConfigOrg,
-    repos: Vec<octocrab::models::Repository>,
+    path: &String,
 ) -> Vec<RepoInfo> {
-    repos
+    let url = create_url(path);
+
+    let mut req_builder = Client::new()
+        .get(url.as_str())
+        .header("Accept", "application/vnd.github.v3+json")
+        .header("User-Agent", owner.namespace.clone());
+
+    req_builder = add_authorization_to_builder(req_builder, &owner.auth_token);
+
+    let mut repos: Vec<GithubProjectResponse> = vec![];
+    let mut page = 1;
+
+    loop {
+        let req_builder_part = req_builder
+            .try_clone()
+            .expect("Request builder could not be cloned")
+            .query(&[("page", page)]);
+
+        debug!("URL: {:?}", &req_builder_part);
+
+        let mut repos_segment = req_builder_part
+            .send()
+            .await
+            .expect("Github request failed")
+            .json::<Vec<GithubProjectResponse>>()
+            .await
+            .expect("Github response could not be parsed");
+
+        debug!("Repos segment: {:?}", repos_segment);
+
+        let segment_length = repos_segment.len();
+
+        repos.append(&mut repos_segment);
+
+        if segment_length < DEFAULT_PAGINATION_SIZE as usize {
+            debug!(
+                "Breaking out of loop: length '{}', page size '{}'",
+                segment_length, DEFAULT_PAGINATION_SIZE
+            );
+            break;
+        }
+
+        page = page + 1;
+    }
+
+    debug!("Github repos '{}' {:?}", url, repos);
+
+    let repos = repos
         .iter()
         .map(|r| {
-            let local_repo_path = add_to_path(
-                &config.path,
-                &vec![
-                    owner.provider.clone(),
-                    r.clone_url
-                        .clone()
-                        .expect("Github user SSH url was not available")
-                        .path()
-                        .to_string()
-                        .trim_start_matches("/")
-                        .to_string(),
-                ],
-            );
+            let (namespace, path) = get_git_ssh_url_segments(&r.ssh_url);
+
+            let local_repo_path = add_to_path(&config.path, &vec![namespace, path]);
 
             debug!("Local repo path {:?}", local_repo_path.to_str());
 
@@ -32,40 +94,35 @@ fn github_generic_repos_handler(
 
             debug!("Local folder path {:?}", local_folder_path.to_str());
 
-            folder_handler(&local_folder_path);
-
             return RepoInfo {
-                url: r.ssh_url.clone().unwrap().to_string(),
+                url: r.ssh_url.clone(),
                 local_folder_path: local_folder_path.clone(),
                 local_repo_path,
             };
         })
-        .collect::<Vec<RepoInfo>>()
+        .collect::<Vec<RepoInfo>>();
+
+    debug!(
+        "Collected {} from {} | {}",
+        repos.len(),
+        owner.provider,
+        owner.namespace
+    );
+
+    repos
 }
 
 pub async fn github_user_handler(
     config: &GitSyncConfig,
     owner: &GitSyncConfigOrg,
 ) -> Vec<RepoInfo> {
-    let url = format!("/users/{}/repos", owner.namespace);
-    let repos: Vec<octocrab::models::Repository> = octocrab::instance()
-        .get(url.clone(), None::<&()>)
-        .await
-        .expect(format!("Github call failed for {}", url).as_str());
+    let path = format!("/users/{}/repos", owner.namespace);
 
-    debug!("Github repos '{}' {:?}", url, repos);
-
-    github_generic_repos_handler(config, owner, repos)
+    github_generic_repos_handler(config, owner, &path).await
 }
 
 pub async fn github_org_handler(config: &GitSyncConfig, owner: &GitSyncConfigOrg) -> Vec<RepoInfo> {
-    let url = format!("/orgs/{}/repos", owner.namespace);
-    let repos: Vec<octocrab::models::Repository> = octocrab::instance()
-        .get(url.clone(), None::<&()>)
-        .await
-        .expect(format!("Github call failed for {}", url).as_str());
+    let path = format!("/orgs/{}/repos", owner.namespace);
 
-    debug!("Github repos '{}' {:?}", url, repos);
-
-    github_generic_repos_handler(config, owner, repos)
+    github_generic_repos_handler(config, owner, &path).await
 }

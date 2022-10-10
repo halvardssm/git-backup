@@ -1,3 +1,4 @@
+use reqwest::RequestBuilder;
 use std::fs;
 use std::path::PathBuf;
 
@@ -38,4 +39,18 @@ pub fn get_git_ssh_url_segments(url: &String) -> (String, String) {
         .to_string();
 
     return (namespace, path);
+}
+
+pub fn add_authorization_to_builder(
+    req_builder: RequestBuilder,
+    token: &Option<String>,
+) -> RequestBuilder {
+    if token.is_some() {
+        return req_builder.header(
+            "Authorization",
+            format!("Bearer {}", token.clone().unwrap()),
+        );
+    }
+
+    req_builder
 }

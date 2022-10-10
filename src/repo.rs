@@ -3,7 +3,7 @@ use crate::providers;
 use log::{debug, info};
 use std::path::PathBuf;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct RepoInfo {
     pub url: String,
     pub local_folder_path: PathBuf,
@@ -34,7 +34,7 @@ pub async fn get_repos(config: &GitSyncConfig) -> Vec<RepoInfo> {
                 let mut r = providers::gitlab::gitlab_user_handler(config, org).await;
                 repos.append(&mut r);
             }
-            "gitlab_org" => {
+            "gitlab_group" => {
                 let mut r = providers::gitlab::gitlab_group_handler(config, org).await;
                 repos.append(&mut r);
             }
@@ -42,8 +42,16 @@ pub async fn get_repos(config: &GitSyncConfig) -> Vec<RepoInfo> {
         }
     }
 
+    info!("Repos length: {}", repos.len());
     debug!("Repos: {:?}", repos);
+
+    let mut filtered_repos = repos.clone();
+    filtered_repos.dedup_by(|a, b| a.url == b.url);
+
+    info!("Repos filtered length:{}", filtered_repos.len());
+    debug!("Repos filtered: {:?}", repos);
+
     info!("get_repos:end");
 
-    repos
+    filtered_repos
 }
